@@ -80,3 +80,36 @@ func testLetStatement(t *testing.T, stmt ast.Statement, expectedIdentifier strin
 
 	return true
 }
+
+func TestReturnStatement(t *testing.T) {
+	input := `
+return 5;
+return 10;
+return 993322;
+return add(1, 2);
+`
+	expectedLen := 4
+	p := New(lexer.New(input))
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 4 {
+		t.Fatalf(
+			"program.Statements does not contain expected amount of statements. expected= %d got=%d",
+			expectedLen,
+			len(program.Statements))
+	}
+
+	for _, stmt := range program.Statements {
+		returnStmt, ok := stmt.(*ast.ReturnStatement)
+		if !ok {
+			t.Errorf("stmt not *ast.ReturnStatement. got=%T", stmt)
+			continue
+		}
+
+		if returnStmt.TokenLiteral() != "return" {
+			t.Errorf("returnStmt.TokenLiteral not 'return'. got=%q", returnStmt.TokenLiteral())
+		}
+	}
+}
