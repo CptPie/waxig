@@ -8,6 +8,8 @@ import (
 	"waixg/interpreter/token"
 )
 
+const enableTraces = false
+
 // Precedence is the precedence of operators
 //
 // The higher the value, the higher the precedence (the more important the operator).
@@ -198,6 +200,10 @@ func (p *Parser) parseReturnStatement() ast.Statement {
 }
 
 func (p *Parser) parseExpressionStatement() ast.Statement {
+	if enableTraces {
+		defer untrace(trace("parseExpressionStatement"))
+	}
+
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 
 	stmt.Expression = p.parseExpression(LOWEST)
@@ -210,6 +216,10 @@ func (p *Parser) parseExpressionStatement() ast.Statement {
 }
 
 func (p *Parser) parseExpression(precedence Precedence) ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parseExpression"))
+	}
+
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.addError(&errors.NoPrefixParseFnError{
@@ -238,6 +248,9 @@ func (p *Parser) parseIdentifier() ast.Expression {
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parseIntegerLiteral"))
+	}
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
@@ -253,6 +266,9 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parsePrefixExpression"))
+	}
 	expression := &ast.PrefixExpression{
 		Token:    p.curToken,
 		Operator: p.curToken.Literal,
