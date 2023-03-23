@@ -77,6 +77,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -331,4 +332,73 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	}
 
 	return exp
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parseIfExpression"))
+	}
+
+	expression := &ast.IfExpression{Token: p.curToken}
+
+	//we expect a `(` after the `if` keyword
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	// advance the tokens
+	p.nextToken()
+
+	// parse the condition (stuff inside parenthesis)
+	expression.Condition = p.parseExpression(LOWEST)
+
+	// we expect a `)` after the condition
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	// after the closing parenthesis, we expect a `{`
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	// parse the consequence
+	expression.Consequence = p.parseBlockStatement()
+
+	// if we have an `else` keyword, we parse the alternative
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+
+		// we expect a `{` after the `else` keyword
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+
+		// parse the alternative
+		expression.Alternative = p.parseBlockStatement()
+	}
+
+	return expression
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	if enableTraces {
+		defer untrace(trace("parseBlockStatement"))
+	}
+
+	block := &ast.BlockStatement{Token: p.curToken}
+	block.Statements = []ast.Statement{}
+
+	p.nextToken()
+
+	// everything until the next `}` is part of the block
+	for !p.curTokenIs(token.RBRACE) && !p.curTokenIs(token.EOF) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return block
 }
