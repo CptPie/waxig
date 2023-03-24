@@ -24,9 +24,9 @@ const (
 	ASTERISK = "*" // Multiplication
 	SLASH    = "/" // Division
 	HAT      = "^" // Exponentiation
-	BANG     = "!" // Negation
 
 	// Boolean operators
+	BANG   = "!"  // Negation
 	EQ     = "==" // Equal to
 	NOT_EQ = "!=" // Not equal to
 	LT     = "<"  // Less than
