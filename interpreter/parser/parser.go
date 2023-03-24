@@ -78,6 +78,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -179,6 +180,9 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 	return p.peekToken.Type == t
 }
 
+// expectPeek checks if the next token is of the expected type
+// if it is, it advances the parser and returns true
+// if it is not, it adds an error and returns false
 func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
@@ -363,6 +367,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	}
 
 	// parse the consequence
+	// parseBlockStatement() will consume the trailing `}`
 	expression.Consequence = p.parseBlockStatement()
 
 	// if we have an `else` keyword, we parse the alternative
@@ -375,6 +380,7 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		}
 
 		// parse the alternative
+		// parseBlockStatement() will consume the trailing `}`
 		expression.Alternative = p.parseBlockStatement()
 	}
 
@@ -401,4 +407,66 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	}
 
 	return block
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parseFunctionLiteral"))
+	}
+
+	lit := &ast.FunctionLiteral{Token: p.curToken}
+
+	// we expect a `(` after the `fn` keyword
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	// parse the function parameters (list of identifiers/expressions)
+	// parseFunctionParameters() will consume the trailing `)`
+	lit.Parameters = p.parseFunctionParameters()
+
+	// we expect a `{` after the parameters
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	// parse the function body (block statement)
+	// parseBlockStatement() will consume the trailing `}`
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+	// if we have a `)` after the `(`, we have no parameters
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return identifiers
+	}
+
+	// advance the tokens
+	p.nextToken()
+
+	// parse the first parameter
+	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	// if we have a `,` after the first parameter, we have more parameters
+	for p.peekTokenIs(token.COMMA) {
+		// consume the `,`
+		p.nextToken()
+		// advance the token to the next parameter
+		p.nextToken()
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	// we expect a `)` after the last parameter
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return identifiers
 }
