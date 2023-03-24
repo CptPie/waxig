@@ -43,6 +43,7 @@ var precedences = map[token.TokenType]Precedence{
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
 	token.HAT:      EXPONENT,
+	token.LPAREN:   CALL,
 }
 
 type (
@@ -92,6 +93,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	// curToken will be the first token in the input
@@ -469,4 +471,50 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return identifiers
+}
+
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	if enableTraces {
+		defer untrace(trace("parseCallExpression"))
+	}
+
+	exp := &ast.CallExpression{Token: p.curToken, Function: function}
+
+	// parse the call arguments (list of expressions)
+	// parseCallArguments() will consume the trailing `)`
+	exp.Arguments = p.parseCallArguments()
+
+	return exp
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+
+	// if we have a `)` after the `(`, we have no arguments
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return args
+	}
+
+	// advance the tokens
+	p.nextToken()
+
+	// parse the first argument
+	args = append(args, p.parseExpression(LOWEST))
+
+	// if we have a `,` after the first argument, we have more arguments
+	for p.peekTokenIs(token.COMMA) {
+		// consume the `,`
+		p.nextToken()
+		// advance the token to the next argument
+		p.nextToken()
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+	// we expect a `)` after the last argument
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return args
 }
