@@ -187,3 +187,42 @@ if (10 > 1) {
 		testIntegerObject(t, evaluated, tt.expected)
 	}
 }
+
+func TestErrorHandling(t *testing.T) {
+	tests := []struct {
+		id       int
+		input    string
+		expected string
+	}{
+		{1, "5 + true;", "type mismatch: INTEGER + BOOLEAN"},
+		{2, "5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"},
+		{3, "-true", "unknown operator: -BOOLEAN"},
+		{4, "true + false;", "unknown operator: BOOLEAN + BOOLEAN"},
+		{5, "5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"},
+		{6, "if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"},
+		{7, `
+if (10 > 1) {
+	if (10 > 1) {
+		return true + false;
+	}
+
+	return 1;
+}
+`, "unknown operator: BOOLEAN + BOOLEAN"},
+		//{8, "foobar", "identifier not found: foobar"},
+		//{9, `"Hello" - "World"`, "unknown operator: STRING - STRING"},
+		//{10, `{"name": "Monkey"}[fn(x) { x }];`, "unusable as hash key: FUNCTION"},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		errObj, ok := evaluated.(*object.Error)
+		if !ok {
+			t.Errorf("test %d: no error object returned. got=%T (%+v)", tt.id, evaluated, evaluated)
+			continue
+		}
+		if errObj.Err.Error() != tt.expected {
+			t.Errorf("test %d: wrong error message. expected=%q, got=%q", tt.id, tt.expected, errObj.Err.Error())
+		}
+	}
+}
