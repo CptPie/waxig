@@ -15,6 +15,7 @@ func New(input string) *Lexer {
 	return l
 }
 
+// readChar() reads the next character in the input string and advances the position of the lexer.
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
@@ -96,6 +97,9 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	// EOF
 	case 0:
 		tok.Literal = ""
@@ -159,4 +163,20 @@ func (l *Lexer) peekChar() byte {
 	} else {
 		return l.input[l.readPosition]
 	}
+}
+
+// readString() reads a string literal from the input string, consumes the leading and trailing "
+// and advances the position of the lexer.
+func (l *Lexer) readString() string {
+	// Skip the opening quote
+	position := l.position + 1
+	for {
+		l.readChar()
+		// end on the closing quote or EOF
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+
+	return l.input[position:l.position]
 }

@@ -117,6 +117,8 @@ func TestIntsAndOperators(t *testing.T) {
 3 <= 5;
 3 >= 5;
 3^4;
+"foobar"
+"foo bar"
 `
 	tests := []struct {
 		expectedType    token.TokenType
@@ -156,6 +158,10 @@ func TestIntsAndOperators(t *testing.T) {
 		{token.HAT, "^"},
 		{token.INT, "4"},
 		{token.SEMICOLON, ";"},
+
+		{token.STRING, "foobar"},
+
+		{token.STRING, "foo bar"},
 		{token.EOF, ""},
 	}
 
