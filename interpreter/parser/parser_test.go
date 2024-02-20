@@ -8,7 +8,6 @@ import (
 )
 
 func TestLetStatements(t *testing.T) {
-
 	tests := []struct {
 		input              string
 		expectedIdentifier string
@@ -405,7 +404,6 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left interface{}, ope
 }
 
 func TestBooleanExpression(t *testing.T) {
-
 	tests := []struct {
 		input           string
 		expectedBoolean bool
@@ -674,6 +672,9 @@ func TestParsingArrayLiterals(t *testing.T) {
 	checkParserErrors(t, p)
 
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
 	array, ok := stmt.Expression.(*ast.ArrayLiteral)
 	if !ok {
 		t.Fatalf("exp is not ast.ArrayLiteral. got=%T", stmt.Expression)
